@@ -34,7 +34,7 @@ def fetch_kalshi_events(ticker):
         kalshi_api_client = kalshi_python.KalshiClient(config)
         kalshi_api_client.set_kalshi_auth(key_id, tmp_key_path)
         
-        market_api = kalshi_python.MarketApi(kalshi_api_client)
+        market_api = kalshi_python.MarketsApi(kalshi_api_client)
         resp = market_api.get_markets(event_ticker=ticker)
         
         options = []
