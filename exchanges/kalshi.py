@@ -28,7 +28,7 @@ def fetch_kalshi_events(ticker):
             f.write(priv_key)
             
         config = kalshi_python.Configuration()
-        config.host = "https://trading-api.kalshi.com/trade-api/v2"
+        config.host = "https://api.elections.kalshi.com/trade-api/v2"
         
         # Build Kalshi authenticated SDK Client natively 
         kalshi_api_client = kalshi_python.KalshiClient(config)
