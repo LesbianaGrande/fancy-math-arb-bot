@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 import threading
 from main import scan_markets
 from scheduler import run_loop
+from collections import OrderedDict
 
 def bot_thread():
     run_loop(scan_markets)
@@ -24,7 +25,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Fancy Math Arbitrage Dashboard", lifespan=lifespan)
 os.makedirs("templates", exist_ok=True)
 
-with open("templates/index.html", "w") as f:
+with open("templates/index.html", "w", encoding="utf-8") as f:
     f.write('''
     <html>
         <head>
@@ -40,42 +41,49 @@ with open("templates/index.html", "w") as f:
                 <h2 class="text-4xl font-black text-emerald-600">${{ "%.2f"|format(wallet.balance) }}</h2>
             </div>
             
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                    <h2 class="text-lg font-bold text-gray-800">Trade Ledger</h2>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden p-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">Arbitrage Execution Bundles</h2>
+                
+                {% for bundle_id, data in bundles.items() %}
+                <div class="mb-6 border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                    <div class="bg-gray-800 text-white px-4 py-3 flex justify-between items-center">
+                        <span class="font-bold text-sm tracking-widest text-gray-300">EXEC ID: {{ bundle_id }}</span>
+                        <span class="font-bold">Total Matrix Cost: <span class="text-green-400">${{ "%.2f"|format(data.total_cost) }}</span></span>
+                    </div>
+                    <table class="w-full text-left text-sm bg-white">
+                        <thead class="bg-gray-100 text-gray-500 uppercase text-xs">
+                            <tr>
+                                <th class="px-4 py-2">Exchange</th>
+                                <th class="px-4 py-2">Direction</th>
+                                <th class="px-4 py-2">Math Bounds</th>
+                                <th class="px-4 py-2">Qty Bought</th>
+                                <th class="px-4 py-2">Leg Cost</th>
+                                <th class="px-4 py-2">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            {% for t in data.trades %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-3 font-semibold {% if t.exchange == 'polymarket' %}text-blue-600{% else %}text-indigo-600{% endif %}">{{ t.exchange | capitalize }}</td>
+                                <td class="px-4 py-3 font-bold {% if t.option_type == 'YES' %}text-emerald-600{% else %}text-rose-500{% endif %}">{{ t.option_type }}</td>
+                                <td class="px-4 py-3 font-mono text-gray-600">{{ t.bounds_str | replace("None", "∞") | replace("_", " TO ") }}</td>
+                                <td class="px-4 py-3">{{ "%.3f"|format(t.qty) }}</td>
+                                <td class="px-4 py-3">${{ "%.2f"|format(t.cost) }}</td>
+                                <td class="px-4 py-3">
+                                    {% if t.status == 'OPEN' %}
+                                        <span class="bg-amber-100 text-amber-800 px-2 py-1 rounded text-xs font-bold tracking-wider">OPEN</span>
+                                    {% elif t.status == 'RESOLVED_WIN' %}
+                                        <span class="bg-emerald-100 text-emerald-800 px-2 py-1 rounded text-xs font-bold tracking-wider">WIN</span>
+                                    {% else %}
+                                        <span class="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-bold tracking-wider">LOSS</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
-                <table class="w-full text-left">
-                    <thead class="bg-gray-50 text-gray-500 text-xs uppercase">
-                        <tr>
-                            <th class="px-6 py-3">ID</th>
-                            <th class="px-6 py-3">Exchange</th>
-                            <th class="px-6 py-3">Bounds</th>
-                            <th class="px-6 py-3">Qty</th>
-                            <th class="px-6 py-3">Cost</th>
-                            <th class="px-6 py-3">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200 text-sm">
-                        {% for t in trades %}
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4 font-mono text-gray-500">#{{ t.id }}</td>
-                            <td class="px-6 py-4 font-semibold {% if t.exchange == 'polymarket' %}text-blue-600{% else %}text-indigo-600{% endif %}">{{ t.exchange | capitalize }}</td>
-                            <td class="px-6 py-4">{{ t.bounds_str }}</td>
-                            <td class="px-6 py-4">{{ "%.2f"|format(t.qty) }}</td>
-                            <td class="px-6 py-4 font-medium">${{ "%.2f"|format(t.cost) }}</td>
-                            <td class="px-6 py-4">
-                                {% if t.status == 'OPEN' %}
-                                    <span class="bg-amber-100 text-amber-800 px-2 py-1 rounded text-xs font-bold">OPEN</span>
-                                {% elif t.status == 'RESOLVED_WIN' %}
-                                    <span class="bg-emerald-100 text-emerald-800 px-2 py-1 rounded text-xs font-bold">WIN</span>
-                                {% else %}
-                                    <span class="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-bold">LOSS</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                {% endfor %}
             </div>
         </body>
     </html>
@@ -87,13 +95,25 @@ templates = Jinja2Templates(directory="templates")
 def root(request: Request):
     session = SessionLocal()
     wallet = session.query(Wallet).first()
-    trades = session.query(Trade).order_by(Trade.timestamp.desc()).limit(50).all()
+    all_trades = session.query(Trade).order_by(Trade.timestamp.desc()).limit(200).all()
     
     if not wallet: 
         wallet = Wallet(balance=0)
         
+    bundles = OrderedDict()
+    for t in all_trades:
+        bid = t.bundle_id or "Legacy_Orphan"
+        if bid not in bundles:
+            bundles[bid] = {"trades": [], "total_cost": 0.0}
+        bundles[bid]["trades"].append(t)
+        bundles[bid]["total_cost"] += t.cost
+        
     session.close()
-    return templates.TemplateResponse("index.html", {"request": request, "wallet": wallet, "trades": trades})
+    return templates.TemplateResponse("index.html", {
+        "request": request, 
+        "wallet": wallet, 
+        "bundles": bundles
+    })
 
 if __name__ == "__main__":
     import paper_db
