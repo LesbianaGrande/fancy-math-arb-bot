@@ -85,3 +85,21 @@ def resolve_trade(trade_id, is_win):
             wallet.balance += (tr.qty * tr.payout_per_share)
         session.commit()
     session.close()
+
+def get_previous_bundles(city: str, market_date: str):
+    """
+    Returns a list of previously executed bundles (lists of option_ids) for a specific city/date combination.
+    """
+    session = SessionLocal()
+    trades = session.query(Trade.bundle_id, Trade.option_id).filter(
+        Trade.city == city,
+        Trade.market_date == market_date
+    ).all()
+    session.close()
+    
+    bundles = {}
+    for bundle_id, option_id in trades:
+        bundles.setdefault(bundle_id, []).append(option_id)
+        
+    return list(bundles.values())
+

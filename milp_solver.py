@@ -9,30 +9,52 @@ def find_arbitrage(options_data, max_budget=20.0, min_roi=1.12):
     Uses Mixed-Integer Linear Programming to construct an arbitrage portfolio.
     Enforces a strict min_roi (default 12%), scales constraints across disjoint sets.
     """
+    if not options_data: 
+        return None
+        
+    from paper_db import get_previous_bundles
+    city = options_data[0].get("city", "Unknown")
+    market_date = options_data[0].get("market_date", "Unknown")
+    prev_bundles = get_previous_bundles(city, market_date)
+    
     bounds_list = [opt['bounds'] for opt in options_data]
     states = get_state_space(bounds_list)
     
     prob = pulp.LpProblem("Arbitrage_Finder", pulp.LpMaximize)
     
     shares_vars = {}
-    z_vars = {}
+    y_vars = {}
     
     # 1. Initialize Variables per Matrix Column
     for opt in options_data:
         oid = opt['id']
         exc = opt['exchange']
         
+        y_vars[oid] = pulp.LpVariable(f"Y_{oid}", cat='Binary')
+        
         if exc == "kalshi":
             shares_vars[oid] = pulp.LpVariable(f"K_{oid}", lowBound=0, cat='Integer')
+            # Link constraint: if shares > 0, binary Y MUST be 1
+            M = (max_budget / max(opt['price'], 0.0001)) + 5
+            prob += shares_vars[oid] <= M * y_vars[oid], f"K_link_{oid}"
+            
         elif exc == "polymarket":
             shares_vars[oid] = pulp.LpVariable(f"P_{oid}", lowBound=0, cat='Continuous')
-            z_vars[oid] = pulp.LpVariable(f"Z_{oid}", cat='Binary')
             
-            # Constraints: Polymarket must have >= $1 minimum spend
-            prob += shares_vars[oid] * opt['price'] >= 1.0 * z_vars[oid], f"PM_min_spend_{oid}"
-            # M-constraint to shut off variable if Z is 0
+            # Constraints: Polymarket must have >= $1 minimum spend if picked
+            prob += shares_vars[oid] * opt['price'] >= 1.0 * y_vars[oid], f"PM_min_spend_{oid}"
+            # M-constraint to shut off variable if Y is 0
             M = (max_budget / max(opt['price'], 0.0001)) + 5
-            prob += shares_vars[oid] <= M * z_vars[oid], f"PM_link_{oid}"
+            prob += shares_vars[oid] <= M * y_vars[oid], f"PM_link_{oid}"
+
+    # 1.5 Evaluate Database Tabu Cuts to force combination diversification
+    for idx, bundle in enumerate(prev_bundles):
+        y_in_bundle = [y_vars[oid] for oid in bundle if oid in y_vars]
+        y_out_bundle = [y for oid, y in y_vars.items() if oid not in bundle]
+        
+        # Only inject cut if the entire puzzle configuration is active on the board today
+        if len(y_in_bundle) == len(bundle):
+            prob += pulp.lpSum(y_in_bundle) - pulp.lpSum(y_out_bundle) <= len(bundle) - 1, f"Tabu_Cut_{idx}"
 
     # 2. Total Cost definition & max budget boundary
     total_cost = pulp.lpSum(shares_vars[opt['id']] * opt['price'] for opt in options_data)
