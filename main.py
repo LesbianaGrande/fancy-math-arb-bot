@@ -11,13 +11,25 @@ logger = logging.getLogger("FancyMathBot")
 def scan_markets():
     logger.info("Starting live market scan over API pools...")
     
-    # Matching Polymarket slugs to Kalshi Tickers based on your target pairs
-    cities = [
-        {"poly": "highest-temperature-in-los-angeles-on-april-17-2026", "kalshi": "kxhighlax-26apr17"},
-        {"poly": "highest-temperature-in-nyc-on-april-17-2026", "kalshi": "kxhighny-26apr17"},
-        {"poly": "highest-temperature-in-chicago-on-april-17-2026", "kalshi": "kxhighchi-26apr17"}
-        # Add more pairs here as they are released
-    ]
+    # Dynamically generate active markets based on timezone cutoff logic
+    import datetime
+    today = datetime.date.today()
+    tomorrow = today + datetime.timedelta(days=1)
+    
+    dates_to_scan = []
+    if should_scan(today.strftime("%Y-%m-%d"), "America/New_York"):
+         dates_to_scan.append(today)
+    if should_scan(tomorrow.strftime("%Y-%m-%d"), "America/New_York"):
+         dates_to_scan.append(tomorrow)
+         
+    cities = []
+    for d in dates_to_scan:
+        poly_date = f"{d.strftime('%B').lower()}-{d.day}-{d.year}"
+        kalshi_date = f"{d.strftime('%y')}{d.strftime('%b').lower()}{d.day:02d}"
+        
+        cities.append({"poly": f"highest-temperature-in-los-angeles-on-{poly_date}", "kalshi": f"kxhighlax-{kalshi_date}"})
+        cities.append({"poly": f"highest-temperature-in-nyc-on-{poly_date}", "kalshi": f"kxhighny-{kalshi_date}"})
+        cities.append({"poly": f"highest-temperature-in-chicago-on-{poly_date}", "kalshi": f"kxhighchi-{kalshi_date}"})
     
     for city in cities:
         logger.info(f"Scanning Target Pair: {city['poly']} <-> {city['kalshi']}")
