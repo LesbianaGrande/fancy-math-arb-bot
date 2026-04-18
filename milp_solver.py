@@ -13,9 +13,7 @@ def find_arbitrage(options_data, max_budget=20.0, min_roi=1.12):
         return None
         
     from paper_db import get_previous_bundles
-    city = options_data[0].get("city", "Unknown")
-    market_date = options_data[0].get("market_date", "Unknown")
-    prev_bundles = get_previous_bundles(city, market_date)
+    prev_bundles = get_previous_bundles()
     
     bounds_list = [opt['bounds'] for opt in options_data]
     states = get_state_space(bounds_list)
@@ -34,6 +32,8 @@ def find_arbitrage(options_data, max_budget=20.0, min_roi=1.12):
         
         if exc == "kalshi":
             shares_vars[oid] = pulp.LpVariable(f"K_{oid}", lowBound=0, cat='Integer')
+            # Constraints: Kalshi must buy at least 1 share if picked
+            prob += shares_vars[oid] >= 1.0 * y_vars[oid], f"K_min_spend_{oid}"
             # Link constraint: if shares > 0, binary Y MUST be 1
             M = (max_budget / max(opt['price'], 0.0001)) + 5
             prob += shares_vars[oid] <= M * y_vars[oid], f"K_link_{oid}"

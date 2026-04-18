@@ -86,15 +86,14 @@ def resolve_trade(trade_id, is_win):
         session.commit()
     session.close()
 
-def get_previous_bundles(city: str, market_date: str):
+def get_previous_bundles():
     """
-    Returns a list of previously executed bundles (lists of option_ids) for a specific city/date combination.
+    Returns a list of all previously executed bundles (lists of option_ids).
+    The solver will natively filter out bundles that belong to different cities 
+    since their option IDs won't exist in the local variable matrix.
     """
     session = SessionLocal()
-    trades = session.query(Trade.bundle_id, Trade.option_id).filter(
-        Trade.city == city,
-        Trade.market_date == market_date
-    ).all()
+    trades = session.query(Trade.bundle_id, Trade.option_id).all()
     session.close()
     
     bundles = {}
