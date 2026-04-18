@@ -30,6 +30,8 @@ def scan_markets():
         cities.append({"poly": f"highest-temperature-in-los-angeles-on-{poly_date}", "kalshi": f"KXHIGHLAX-{kalshi_date}"})
         cities.append({"poly": f"highest-temperature-in-nyc-on-{poly_date}", "kalshi": f"KXHIGHNY-{kalshi_date}"})
         cities.append({"poly": f"highest-temperature-in-chicago-on-{poly_date}", "kalshi": f"KXHIGHCHI-{kalshi_date}"})
+        cities.append({"poly": f"highest-temperature-in-miami-on-{poly_date}", "kalshi": f"KXHIGHMIA-{kalshi_date}"})
+        cities.append({"poly": f"highest-temperature-in-austin-on-{poly_date}", "kalshi": f"KXHIGHAUS-{kalshi_date}"})
     
     for city in cities:
         logger.info(f"Scanning Target Pair: {city['poly']} <-> {city['kalshi']}")
@@ -46,8 +48,8 @@ def scan_markets():
         live_books.extend(poly_options)
         live_books.extend(kalshi_options)
         
-        if not live_books:
-            logger.warning(" -> Both chains returned empty order books. Skipping.")
+        if not poly_options or not kalshi_options:
+            logger.warning(" -> Lacking bilateral cross-exchange data overlapping for this market target. Skipping arbitrage engine.")
             continue
             
         logger.info(f" -> Injecting {len(live_books)} total options into the MILP Matrix...")
