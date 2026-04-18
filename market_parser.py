@@ -7,7 +7,15 @@ def parse_range(range_str):
     e.g. "65-66°F" -> (65, 66)
     e.g. "67°F or higher" -> (67, None)
     """
-    text = range_str.upper().replace("°F", "").strip()
+    text = range_str.upper().replace("°F", "").replace("°", "").strip()
+    
+    if "<" in text:
+        nums = [int(n) for n in re.findall(r'\d+', text)]
+        if nums: return (None, nums[0] - 1)
+        
+    if ">" in text:
+        nums = [int(n) for n in re.findall(r'\d+', text)]
+        if nums: return (nums[0] + 1, None)
     
     if "BELOW" in text or "LOWER" in text:
         nums = [int(n) for n in re.findall(r'\d+', text)]
@@ -28,13 +36,9 @@ def parse_range(range_str):
     # Range format: e.g. "65-66"
     text_clean = text.replace(' ', '')
     if '-' in text_clean:
-        parts = text_clean.split('-')
-        if len(parts) >= 2:
-            try:
-                # Handle potential negative signs if possible, though unlikely for absolute temp ranges here
-                return (int(parts[0]), int(parts[-1]))
-            except ValueError:
-                pass
+        nums = [int(n) for n in re.findall(r'\d+', text_clean)]
+        if len(nums) >= 2:
+            return (nums[0], nums[1])
 
     # Exact number
     nums = [int(n) for n in re.findall(r'\d+', text)]
