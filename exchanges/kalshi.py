@@ -54,15 +54,21 @@ def fetch_kalshi_events(ticker):
                 
             # Note: Kalshi V2 bulk endpoints purposely dehydrate orderbook tops payload. 
             # We must explicitly query the individual market to materialize the specific yes_ask limit price.
+            # Edit: Even single markets dehydrate. We must explicitly hook the isolated orderbook socket.
             try:
-                single_m_resp = market_api.get_market(ticker=m.ticker)
-                yes_ask = getattr(single_m_resp.market, 'yes_ask', 0)
+                ob_resp = market_api.get_market_orderbook(ticker=m.ticker)
+                
+                # Let's safely dump the orderbook string directly to the terminal so we can see its structure
+                logger.info(f"    --> Orderbook schema dumped for {m.ticker}: {getattr(ob_resp, 'orderbook', 'No OB property')}")
+                
+                # Placeholder fallback until we read the schema
+                yes_ask = 0
             except Exception as e:
                 logger.debug(f"Failed to fetch market orderbook execution limits for {m.ticker}: {e}")
                 yes_ask = 0
             
             # Temporary internal log to inspect API data drops
-            logger.info(f"    -> Evaluating Kalshi Leg: '{title}' | Bounds: {bounds} | yes_ask: {yes_ask}")
+            logger.info(f"    -> Evaluating Kalshi Leg: '{title}' | Bounds: {bounds} | yes_ask_fallback: {yes_ask}")
             
             if not yes_ask or yes_ask <= 1 or yes_ask > 98: continue
             
