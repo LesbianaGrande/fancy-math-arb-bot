@@ -47,12 +47,22 @@ def fetch_kalshi_events(ticker):
         for m in resp.markets:
             title = m.title
             bounds = parse_range(title)
-            yes_ask = getattr(m, 'yes_ask', 0)
+            
+            if bounds == (None, None): 
+                logger.info(f"    -> Evaluating Kalshi Leg: '{title}' | Bounds: {bounds} | yes_ask: N/A (Skipped)")
+                continue
+                
+            # Note: Kalshi V2 bulk endpoints purposely dehydrate orderbook tops payload. 
+            # We must explicitly query the individual market to materialize the specific yes_ask limit price.
+            try:
+                single_m_resp = market_api.get_market(ticker=m.ticker)
+                yes_ask = getattr(single_m_resp.market, 'yes_ask', 0)
+            except Exception as e:
+                logger.debug(f"Failed to fetch market orderbook execution limits for {m.ticker}: {e}")
+                yes_ask = 0
             
             # Temporary internal log to inspect API data drops
             logger.info(f"    -> Evaluating Kalshi Leg: '{title}' | Bounds: {bounds} | yes_ask: {yes_ask}")
-            
-            if bounds == (None, None): continue
             
             if not yes_ask or yes_ask <= 1 or yes_ask > 98: continue
             
