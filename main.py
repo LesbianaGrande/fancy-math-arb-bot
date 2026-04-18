@@ -20,16 +20,25 @@ def scan_markets():
     ]
     
     for city in cities:
+        logger.info(f"Scanning Target Pair: {city['poly']} <-> {city['kalshi']}")
         live_books = []
+        
+        # Scrape PM
         poly_options = fetch_polymarket_events(city['poly'])
+        logger.info(f" -> Grabbed {len(poly_options)} PM option limits")
+        
+        # Scrape Kalshi
         kalshi_options = fetch_kalshi_events(city['kalshi'])
+        logger.info(f" -> Grabbed {len(kalshi_options)} Kalshi option limits")
         
         live_books.extend(poly_options)
         live_books.extend(kalshi_options)
         
         if not live_books:
+            logger.warning(" -> Both chains returned empty order books. Skipping.")
             continue
             
+        logger.info(f" -> Injecting {len(live_books)} total options into the MILP Matrix...")
         result = find_arbitrage(live_books, max_budget=20.0, min_roi=1.12)
         
         if result:

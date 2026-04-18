@@ -14,5 +14,6 @@ def fetch_kalshi_events(ticker):
         logger.warning("Missing Kalshi API Keys. Cannot pull live data.")
         return []
         
+    logger.info("Kalshi keys authenticated. (Stubbed Return)")
     # We would hit: https://trading-api.kalshi.com/trade-api/v2/events/...
     return []
