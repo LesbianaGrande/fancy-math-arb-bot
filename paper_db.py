@@ -14,6 +14,8 @@ class Trade(Base):
     __tablename__ = 'trades'
     id = Column(Integer, primary_key=True)
     bundle_id = Column(String, default="Legacy") # Groups legs of an arbitrage
+    city = Column(String, default="Unknown")
+    market_date = Column(String, default="Unknown")
     exchange = Column(String)
     option_id = Column(String)
     option_type = Column(String) # YES / NO
@@ -57,6 +59,8 @@ def execute_trade(trades_list):
     for t in trades_list:
         tr = Trade(
             bundle_id=bundle_id,
+            city=t.get("city", "Unknown"),
+            market_date=t.get("market_date", "Unknown"),
             exchange=t["exchange"],
             option_id=t["id"],
             option_type=t["type"],

@@ -16,9 +16,9 @@ def scan_markets():
     # double-payout overlapping bounds scenario here so it records to DB.
     
     simulated_books = [
-        {"id": "poly_yes_64", "exchange": "polymarket", "price": 0.03, "bounds": (None, 64), "type": "YES"},
-        {"id": "kalshi_yes_67", "exchange": "kalshi", "price": 0.19, "bounds": (67, None), "type": "YES"},
-        {"id": "poly_no_68", "exchange": "polymarket", "price": 0.68, "bounds": (68, 69), "type": "NO"}
+        {"id": "poly_yes_64", "exchange": "polymarket", "price": 0.30, "bounds": (None, 64), "type": "YES", "city": "New York", "market_date": "2026-04-18"},
+        {"id": "kalshi_yes_65_66", "exchange": "kalshi", "price": 0.25, "bounds": (65, 66), "type": "YES", "city": "New York", "market_date": "2026-04-18"},
+        {"id": "poly_yes_67", "exchange": "polymarket", "price": 0.31, "bounds": (67, None), "type": "YES", "city": "New York", "market_date": "2026-04-18"}
     ]
     
     result = find_arbitrage(simulated_books, max_budget=20.0, min_roi=1.12)

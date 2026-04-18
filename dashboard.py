@@ -47,7 +47,12 @@ with open("templates/index.html", "w", encoding="utf-8") as f:
                 {% for bundle_id, data in bundles.items() %}
                 <div class="mb-6 border border-gray-200 rounded-lg overflow-hidden shadow-sm">
                     <div class="bg-gray-800 text-white px-4 py-3 flex justify-between items-center">
-                        <span class="font-bold text-sm tracking-widest text-gray-300">EXEC ID: {{ bundle_id }}</span>
+                        <div class="flex items-center">
+                            <span class="font-bold text-sm tracking-widest text-gray-400 mr-4">ID: {{ bundle_id }}</span>
+                            {% if data.trades|length > 0 %}
+                            <span class="px-2 py-1 bg-gray-700 rounded text-xs font-bold text-blue-200 tracking-wide uppercase shadow-inner">📍 {{ data.trades[0].city }} &bull; {{ data.trades[0].market_date }}</span>
+                            {% endif %}
+                        </div>
                         <span class="font-bold">Total Matrix Cost: <span class="text-green-400">${{ "%.2f"|format(data.total_cost) }}</span></span>
                     </div>
                     <table class="w-full text-left text-sm bg-white">

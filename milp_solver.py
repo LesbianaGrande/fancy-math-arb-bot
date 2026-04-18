@@ -81,10 +81,12 @@ def find_arbitrage(options_data, max_budget=20.0, min_roi=1.12):
                 trades.append({
                     "id": opt['id'],
                     "exchange": opt["exchange"],
-                    "qty": round(var.varValue, 3), # PM allows precision, Kalshi will naturally be integer
+                    "qty": round(var.varValue, 3), 
                     "price": opt["price"],
                     "type": opt["type"],
-                    "bounds": opt["bounds"]
+                    "bounds": opt["bounds"],
+                    "city": opt.get("city", "Unknown"),
+                    "market_date": opt.get("market_date", "Unknown")
                 })
                 
         logger.info(f"MILP Engine Validated Path: Cost: ${cost_val:.2f} -> Guaranteed Return: ${payout_val:.2f}")
