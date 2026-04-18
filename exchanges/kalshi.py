@@ -30,9 +30,9 @@ def fetch_kalshi_events(ticker):
         config = kalshi_python.Configuration()
         config.host = "https://trading-api.kalshi.com/trade-api/v2"
         
-        # Build Kalshi authenticated SDK Client via RSA cryptography 
-        auth_token = kalshi_python.generate_kalshi_authorization_token(key_id, tmp_key_path)
-        kalshi_api_client = kalshi_python.ApiClient(config, header_name="Authorization", header_value=auth_token)
+        # Build Kalshi authenticated SDK Client natively 
+        kalshi_api_client = kalshi_python.KalshiClient(config)
+        kalshi_api_client.set_kalshi_auth(key_id, tmp_key_path)
         
         market_api = kalshi_python.MarketApi(kalshi_api_client)
         resp = market_api.get_markets(event_ticker=ticker)
