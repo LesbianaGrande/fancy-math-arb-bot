@@ -59,17 +59,18 @@ def fetch_kalshi_events(ticker):
             try:
                 ob_json = requests.get(f"https://api.elections.kalshi.com/trade-api/v2/markets/{m.ticker}/orderbook").json()
                 
-                # Kalshi paradoxically stores "bids to buy NO" inside the 'yes_dollars' array
-                # (Representing dollars necessary to pair against a YES buy).
-                no_bids_array = ob_json.get('orderbook_fp', {}).get('yes_dollars', [])
+                # Kalshi orderbook arrays: 'yes_dollars' are YES bids, 'no_dollars' are NO bids.
+                # To execute a YES buy immediately, we must hit the resting NO bids (Ask = 1.0 - max(No_bids)).
+                no_dollars = ob_json.get('orderbook_fp', {}).get('no_dollars', [])
                 
-                if not no_bids_array:
+                if not no_dollars:
                     yes_ask = 0
                 else:
-                    best_no_bid = max([float(order[0]) for order in no_bids_array])
+                    best_no_bid = max([float(order[0]) for order in no_dollars])
                     yes_ask = int(round((1.0 - best_no_bid) * 100))
                     
-                logger.info(f"    --> Calculated YES Ask successfully for {m.ticker}: {yes_ask}c (from inverse NO bid ${best_no_bid:.2f})")
+                # Removed the 'inverse NO bid' text since it confused the dashboard visualization
+                logger.info(f"    --> Calculated YES Ask successfully for {m.ticker}: {yes_ask}c")
                 
             except Exception as e:
                 logger.debug(f"Failed to fetch or parse market orderbook execution limits for {m.ticker}: {e}")
