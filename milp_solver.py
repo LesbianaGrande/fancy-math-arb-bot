@@ -42,6 +42,7 @@ def find_arbitrage(options_data, max_budget=20.0, min_roi=1.12):
     worst_payout = pulp.LpVariable("Lowest_Guaranteed_Payout", lowBound=0, cat='Continuous')
     
     # 4. Map Payout Matrix Row constraints
+    total_state_payouts = []
     for T in states:
         payout_in_state_T = []
         for opt in options_data:
@@ -55,14 +56,18 @@ def find_arbitrage(options_data, max_budget=20.0, min_roi=1.12):
                 
             if pays:
                 payout_in_state_T.append(shares_vars[opt['id']] * 1.0) 
-                
-        prob += pulp.lpSum(payout_in_state_T) >= worst_payout, f"Coverage_T_{T}"
+        
+        state_sum = pulp.lpSum(payout_in_state_T)
+        prob += state_sum >= worst_payout, f"Coverage_T_{T}"
+        total_state_payouts.append(state_sum)
     
-    # 5. Core Mathematical Invariant: Worst case must exceed Return Profile
+    # 5. Core Mathematical Invariant: Worst case must exceed Return Profile floor
     prob += worst_payout >= total_cost * min_roi, f"Requires_Min_ROI_{int(min_roi*100)}"
     
-    # 6. Objective: Maximize Profit scalar
-    prob += worst_payout - total_cost, "Maximize_Profit"
+    # 6. Objective: Maximize Total Upside Area (Lottery tickets)
+    # By maximizing the sum of all state payouts, the solver will aggressively buy cheap, overlapping
+    # "lottery ticket" options to raise the mathematical ceiling, as long as the guaranteed minimum floor holds.
+    prob += pulp.lpSum(total_state_payouts) - total_cost, "Maximize_Upside"
     
     # Execute LP solver natively without streaming to terminal
     status = prob.solve(pulp.PULP_CBC_CMD(msg=0))
