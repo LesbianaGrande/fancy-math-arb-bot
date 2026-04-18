@@ -33,6 +33,7 @@ def fetch_polymarket_events(slug):
                 prices_str = m.get("outcomePrices", "[\"0\", \"1\"]")
                 prices = json.loads(prices_str)
                 yes_price = best_ask if best_ask != 0 else float(prices[0])
+                no_price = float(prices[1])
             except:
                 continue
                 
@@ -44,6 +45,18 @@ def fetch_polymarket_events(slug):
                     "price": yes_price,
                     "bounds": bounds,
                     "type": "YES",
+                    "city": event.get("title", slug),
+                    "market_date": event.get("endDateIso", "Unknown")
+                })
+                
+            # Log PM NO options to our universal matrix
+            if no_price > 0.001 and no_price < 0.999:
+                options.append({
+                    "id": f"PM_{m['id']}_NO",
+                    "exchange": "polymarket",
+                    "price": no_price,
+                    "bounds": bounds,
+                    "type": "NO",
                     "city": event.get("title", slug),
                     "market_date": event.get("endDateIso", "Unknown")
                 })

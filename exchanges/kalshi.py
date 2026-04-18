@@ -69,27 +69,44 @@ def fetch_kalshi_events(ticker):
                     best_no_bid = max([float(order[0]) for order in no_dollars])
                     yes_ask = int(round((1.0 - best_no_bid) * 100))
                     
+                # To execute a NO buy immediately, we must hit the resting YES bids (Ask = 1.0 - max(Yes_bids)).
+                yes_dollars = ob_json.get('orderbook_fp', {}).get('yes_dollars', [])
+                
+                if not yes_dollars:
+                    no_ask = 0
+                else:
+                    best_yes_bid = max([float(order[0]) for order in yes_dollars])
+                    no_ask = int(round((1.0 - best_yes_bid) * 100))
+                    
                 # Removed the 'inverse NO bid' text since it confused the dashboard visualization
-                logger.info(f"    --> Calculated YES Ask successfully for {m.ticker}: {yes_ask}c")
+                logger.info(f"    --> Calculated Ask successfully for {m.ticker}: YES={yes_ask}c, NO={no_ask}c")
                 
             except Exception as e:
                 logger.debug(f"Failed to fetch or parse market orderbook execution limits for {m.ticker}: {e}")
                 yes_ask = 0
+                no_ask = 0
             
-            # Temporary internal log to inspect API data drops
-            logger.info(f"    -> Evaluating Kalshi Leg: '{title}' | Bounds: {bounds} | yes_ask_fallback: {yes_ask}")
-            
-            if not yes_ask or yes_ask <= 1 or yes_ask > 98: continue
-            
-            options.append({
-                "id": f"KALSHI_{m.ticker}_YES",
-                "exchange": "kalshi",
-                "price": yes_ask / 100.0,
-                "bounds": bounds,
-                "type": "YES",
-                "city": f"Kalshi Ticker: {ticker}",
-                "market_date": "Live API Stream"
-            })
+            if yes_ask > 0 and yes_ask < 100:
+                options.append({
+                    "id": f"KALSHI_{m.ticker}_YES",
+                    "exchange": "kalshi",
+                    "price": yes_ask / 100.0,
+                    "bounds": bounds,
+                    "type": "YES",
+                    "city": f"Kalshi Ticker: {ticker}",
+                    "market_date": "Live API Stream"
+                })
+                
+            if no_ask > 0 and no_ask < 100:
+                options.append({
+                    "id": f"KALSHI_{m.ticker}_NO",
+                    "exchange": "kalshi",
+                    "price": no_ask / 100.0,
+                    "bounds": bounds,
+                    "type": "NO",
+                    "city": f"Kalshi Ticker: {ticker}",
+                    "market_date": "Live API Stream"
+                })
             
         return options
     except Exception as e:
