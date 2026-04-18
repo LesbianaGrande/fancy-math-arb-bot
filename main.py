@@ -22,16 +22,39 @@ def scan_markets():
     if should_scan(tomorrow.strftime("%Y-%m-%d"), "America/New_York"):
          dates_to_scan.append(tomorrow)
          
+    CITY_MAPPINGS = {
+        "los-angeles": "KXHIGHLAX",
+        "nyc": "KXHIGHNY",
+        "chicago": "KXHIGHCHI",
+        "miami": "KXHIGHMIA",
+        "austin": "KXHIGHAUS",
+        "houston": "KXHIGHHOU",
+        "philadelphia": "KXHIGHPHIL",
+        "denver": "KXHIGHDEN",
+        "san-francisco": "KXHIGHTSFO",
+        "boston": "KXHIGHTBOS",
+        "las-vegas": "KXHIGHTLV",
+        "washington-dc": "KXHIGHTDC",
+        "phoenix": "KXHIGHTPHX",
+        "san-antonio": "KXHIGHTSATX",
+        "new-orleans": "KXHIGHTNOLA",
+        "oklahoma-city": "KXHIGHTOKC",
+        "dallas": "KXHIGHTDAL",
+        "seattle": "KXHIGHTSEA",
+        "atlanta": "KXHIGHTATL",
+        "minneapolis": "KXHIGHTMIN"
+    }
+         
     cities = []
     for d in dates_to_scan:
         poly_date = f"{d.strftime('%B').lower()}-{d.day}-{d.year}"
         kalshi_date = f"{d.strftime('%y')}{d.strftime('%b').upper()}{d.day:02d}"
         
-        cities.append({"poly": f"highest-temperature-in-los-angeles-on-{poly_date}", "kalshi": f"KXHIGHLAX-{kalshi_date}"})
-        cities.append({"poly": f"highest-temperature-in-nyc-on-{poly_date}", "kalshi": f"KXHIGHNY-{kalshi_date}"})
-        cities.append({"poly": f"highest-temperature-in-chicago-on-{poly_date}", "kalshi": f"KXHIGHCHI-{kalshi_date}"})
-        cities.append({"poly": f"highest-temperature-in-miami-on-{poly_date}", "kalshi": f"KXHIGHMIA-{kalshi_date}"})
-        cities.append({"poly": f"highest-temperature-in-austin-on-{poly_date}", "kalshi": f"KXHIGHAUS-{kalshi_date}"})
+        for poly_city, kalshi_code in CITY_MAPPINGS.items():
+            cities.append({
+                "poly": f"highest-temperature-in-{poly_city}-on-{poly_date}", 
+                "kalshi": f"{kalshi_code}-{kalshi_date}"
+            })
     
     for city in cities:
         logger.info(f"Scanning Target Pair: {city['poly']} <-> {city['kalshi']}")
