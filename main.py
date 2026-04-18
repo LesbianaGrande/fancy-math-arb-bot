@@ -25,11 +25,11 @@ def scan_markets():
     cities = []
     for d in dates_to_scan:
         poly_date = f"{d.strftime('%B').lower()}-{d.day}-{d.year}"
-        kalshi_date = f"{d.strftime('%y')}{d.strftime('%b').lower()}{d.day:02d}"
+        kalshi_date = f"{d.strftime('%y')}{d.strftime('%b').upper()}{d.day:02d}"
         
-        cities.append({"poly": f"highest-temperature-in-los-angeles-on-{poly_date}", "kalshi": f"kxhighlax-{kalshi_date}"})
-        cities.append({"poly": f"highest-temperature-in-nyc-on-{poly_date}", "kalshi": f"kxhighny-{kalshi_date}"})
-        cities.append({"poly": f"highest-temperature-in-chicago-on-{poly_date}", "kalshi": f"kxhighchi-{kalshi_date}"})
+        cities.append({"poly": f"highest-temperature-in-los-angeles-on-{poly_date}", "kalshi": f"KXHIGHLAX-{kalshi_date}"})
+        cities.append({"poly": f"highest-temperature-in-nyc-on-{poly_date}", "kalshi": f"KXHIGHNY-{kalshi_date}"})
+        cities.append({"poly": f"highest-temperature-in-chicago-on-{poly_date}", "kalshi": f"KXHIGHCHI-{kalshi_date}"})
     
     for city in cities:
         logger.info(f"Scanning Target Pair: {city['poly']} <-> {city['kalshi']}")

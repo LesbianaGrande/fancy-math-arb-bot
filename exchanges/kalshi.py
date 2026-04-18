@@ -39,7 +39,10 @@ def fetch_kalshi_events(ticker):
         
         options = []
         if not hasattr(resp, 'markets'):
+            logger.warning(f"Kalshi responded with no markets attribute for {ticker}!")
             return []
+            
+        logger.info(f" -> Kalshi API Raw Found: {len(resp.markets)} underlying markets inside {ticker}")
             
         for m in resp.markets:
             title = m.title
