@@ -1,6 +1,7 @@
 import os
 import logging
 import tempfile
+import requests
 from market_parser import parse_range
 try:
     import kalshi_python
