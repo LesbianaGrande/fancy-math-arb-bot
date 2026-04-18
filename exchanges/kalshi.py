@@ -47,9 +47,13 @@ def fetch_kalshi_events(ticker):
         for m in resp.markets:
             title = m.title
             bounds = parse_range(title)
+            yes_ask = getattr(m, 'yes_ask', 0)
+            
+            # Temporary internal log to inspect API data drops
+            logger.info(f"    -> Evaluating Kalshi Leg: '{title}' | Bounds: {bounds} | yes_ask: {yes_ask}")
+            
             if bounds == (None, None): continue
             
-            yes_ask = m.yes_ask
             if not yes_ask or yes_ask <= 1 or yes_ask > 98: continue
             
             options.append({
