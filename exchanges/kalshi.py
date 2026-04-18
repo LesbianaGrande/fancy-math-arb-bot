@@ -53,18 +53,22 @@ def fetch_kalshi_events(ticker):
                 continue
                 
             # Note: Kalshi V2 bulk endpoints purposely dehydrate orderbook tops payload. 
-            # We must explicitly query the individual market to materialize the specific yes_ask limit price.
-            # Edit: Even single markets dehydrate. We must explicitly hook the isolated orderbook socket.
+            # SDK's get_market_orderbook fails due to V2 schema change ('orderbook' -> 'orderbook_fp').
+            # We explicitly pull the public REST endpoint and calculate yes_ask inversely from the NO bid vector.
             try:
-                ob_resp = market_api.get_market_orderbook(ticker=m.ticker)
+                ob_json = requests.get(f"https://api.elections.kalshi.com/trade-api/v2/markets/{m.ticker}/orderbook").json()
+                no_dollars = ob_json.get('orderbook_fp', {}).get('no_dollars', [])
                 
-                # Let's safely dump the orderbook string directly to the terminal so we can see its structure
-                logger.info(f"    --> Orderbook schema dumped for {m.ticker}: {getattr(ob_resp, 'orderbook', 'No OB property')}")
+                if not no_dollars:
+                    yes_ask = 0
+                else:
+                    best_no_bid = max([float(order[0]) for order in no_dollars])
+                    yes_ask = int(round((1.0 - best_no_bid) * 100))
+                    
+                logger.info(f"    --> Calculated YES Ask successfully for {m.ticker}: {yes_ask}c (from inverse NO bid ${best_no_bid:.2f})")
                 
-                # Placeholder fallback until we read the schema
-                yes_ask = 0
             except Exception as e:
-                logger.debug(f"Failed to fetch market orderbook execution limits for {m.ticker}: {e}")
+                logger.debug(f"Failed to fetch or parse market orderbook execution limits for {m.ticker}: {e}")
                 yes_ask = 0
             
             # Temporary internal log to inspect API data drops
