@@ -207,6 +207,28 @@ def root(request: Request):
         "settled_bundles": settled_bundles
     })
 
+@app.get("/debug/db")
+def debug_db():
+    from datetime import datetime
+    session = SessionLocal()
+    trades = session.query(Trade).order_by(Trade.timestamp.desc()).limit(100).all()
+    out = []
+    for t in trades:
+        age_days = (datetime.utcnow() - t.timestamp).days if t.timestamp else None
+        out.append({
+            "id": t.id,
+            "bundle_id": t.bundle_id,
+            "market_date": t.market_date,
+            "exchange": t.exchange,
+            "option_id": t.option_id,
+            "status": t.status,
+            "age_days": age_days,
+            "timestamp": t.timestamp.isoformat() if t.timestamp else None
+        })
+    session.close()
+    return {"total_tracked": len(trades), "trades": out}
+
+
 if __name__ == "__main__":
     import paper_db
     paper_db.init_db()
