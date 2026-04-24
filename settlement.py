@@ -25,10 +25,12 @@ def settle_open_trades():
     for t in open_trades:
         try:
             if getattr(t, 'timestamp', None):
-                if (datetime.utcnow() - t.timestamp).days >= 4:
-                    # After 4 days without API resolution, forcefully expire the orphan trade
+                # Since markets are only created for today/tomorrow (max 48hr lifespan),
+                # any trade older than 2 full days is definitively expired in the real world.
+                if (datetime.utcnow() - t.timestamp).days >= 2:
+                    # After 2 days without API resolution, forcefully expire the orphan trade
                     resolve_trade(t.id, False)
-                    logger.warning(f"Trade {t.id} forcibly expired out of system due to 4-day age limit.")
+                    logger.warning(f"Trade {t.id} forcibly expired out of system due to 2-day age limit.")
                     continue
 
             if t.exchange == 'polymarket':
