@@ -77,7 +77,13 @@ with open("templates/index.html", "w", encoding="utf-8") as f:
                                 <td class="px-4 py-3">{{ "%.3f"|format(t.qty) }}</td>
                                 <td class="px-4 py-3">${{ "%.2f"|format(t.cost) }}</td>
                                 <td class="px-4 py-3">
-                                    <span class="bg-amber-100 text-amber-800 px-2 py-1 rounded text-xs font-bold tracking-wider">OPEN</span>
+                                    {% if t.status == 'OPEN' %}
+                                        <span class="bg-amber-100 text-amber-800 px-2 py-1 rounded text-xs font-bold tracking-wider">OPEN</span>
+                                    {% elif t.status == 'RESOLVED_WIN' %}
+                                        <span class="bg-emerald-100 text-emerald-800 px-2 py-1 rounded text-xs font-bold tracking-wider">WIN</span>
+                                    {% else %}
+                                        <span class="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-bold tracking-wider">LOSS</span>
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}
