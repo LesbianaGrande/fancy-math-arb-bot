@@ -30,6 +30,13 @@ def run_loop(execute_callback):
     Infinite scheduler loop.
     execute_callback should trigger the exchange fetch -> MILP solver -> execute_trade
     """
+    from settlement import settle_open_trades
+    
     while True:
+        try:
+            settle_open_trades()
+        except Exception as e:
+            print(f"Settlement loop error: {e}")
+            
         execute_callback()
         time.sleep(300) # scan every 5 minutes
