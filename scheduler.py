@@ -38,5 +38,9 @@ def run_loop(execute_callback):
         except Exception as e:
             print(f"Settlement loop error: {e}")
             
-        execute_callback()
+        try:
+            execute_callback()
+        except Exception as e:
+            print(f"Execution callback error: {e}")
+            
         time.sleep(300) # scan every 5 minutes
