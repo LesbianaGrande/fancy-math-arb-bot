@@ -76,13 +76,21 @@ def settle_open_trades():
                 if len(parts) >= 3:
                     # Recombine ticker if it has internal underscores
                     ticker = "_".join(parts[1:-1])
-                    url = f"https://api.elections.kalshi.com/trade-api/v2/markets/{ticker}"
-                    r = requests.get(url, timeout=10, headers=headers)
-                    if r.status_code == 200:
-                        data = r.json()
-                        m = data.get('market', {})
-                        if m.get('status') in ('finalized', 'settled'):
-                            result = m.get('result', '').lower()
+                    
+                    try:
+                        from exchanges.kalshi import get_kalshi_api
+                        market_api = get_kalshi_api()
+                        if not market_api:
+                            continue
+                            
+                        resp = market_api.get_market(ticker)
+                        if not hasattr(resp, 'market'):
+                            continue
+                            
+                        m = resp.market
+                        status = getattr(m, 'status', '')
+                        if status in ('finalized', 'settled'):
+                            result = getattr(m, 'result', '').lower()
                             if result in ('yes', 'no'):
                                 is_win = False
                                 if t.option_type == 'YES' and result == 'yes':
@@ -96,6 +104,8 @@ def settle_open_trades():
                                 
                                 resolve_trade(t.id, is_win)
                                 logger.info(f"Settled Kalshi {t.option_id} -> {'WIN' if is_win else 'LOSS'}")
+                    except Exception as e:
+                        logger.error(f"Error fetching Kalshi market {ticker} via SDK: {e}")
                             
         except Exception as e:
             logger.error(f"Error settling trade {t.id} ({t.option_id}): {e}")

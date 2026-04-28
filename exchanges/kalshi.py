@@ -10,32 +10,35 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-def fetch_kalshi_events(ticker):
+def get_kalshi_api():
     key_id = os.getenv("KALSHI_KEY_ID")
     private_key_str = os.getenv("KALSHI_PRIVATE_KEY")
     
     if not key_id or not private_key_str:
-        logger.warning(f"Missing Kalshi Keys. Skipping Kalshi pull for {ticker}.")
-        return []
+        return None
 
+    tmp_key_path = os.path.join(tempfile.gettempdir(), "kalshi.key")
+    priv_key = private_key_str.replace("\\\\n", "\\n").replace("\\n", "\n")
+    if not priv_key.endswith("\n"): 
+        priv_key += "\n"
+        
+    with open(tmp_key_path, "w") as f:
+        f.write(priv_key)
+        
+    config = kalshi_python.Configuration()
+    config.host = "https://api.elections.kalshi.com/trade-api/v2"
+    
+    kalshi_api_client = kalshi_python.KalshiClient(config)
+    kalshi_api_client.set_kalshi_auth(key_id, tmp_key_path)
+    return kalshi_python.MarketsApi(kalshi_api_client)
+
+def fetch_kalshi_events(ticker):
     try:
-        tmp_key_path = os.path.join(tempfile.gettempdir(), "kalshi.key")
-        # Ensure proper newline formatting for RSA PKCS8 loading
-        priv_key = private_key_str.replace("\\\\n", "\\n").replace("\\n", "\n")
-        if not priv_key.endswith("\n"): 
-            priv_key += "\n"
+        market_api = get_kalshi_api()
+        if not market_api:
+            logger.warning(f"Missing Kalshi Keys. Skipping Kalshi pull for {ticker}.")
+            return []
             
-        with open(tmp_key_path, "w") as f:
-            f.write(priv_key)
-            
-        config = kalshi_python.Configuration()
-        config.host = "https://api.elections.kalshi.com/trade-api/v2"
-        
-        # Build Kalshi authenticated SDK Client natively 
-        kalshi_api_client = kalshi_python.KalshiClient(config)
-        kalshi_api_client.set_kalshi_auth(key_id, tmp_key_path)
-        
-        market_api = kalshi_python.MarketsApi(kalshi_api_client)
         resp = market_api.get_markets(event_ticker=ticker)
         
         options = []
