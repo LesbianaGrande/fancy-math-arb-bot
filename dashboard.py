@@ -55,7 +55,12 @@ with open("templates/index.html", "w", encoding="utf-8") as f:
                             <span class="px-2 py-1 bg-gray-700 rounded text-xs font-bold text-blue-200 tracking-wide uppercase shadow-inner">📍 {{ data.trades[0].city }} &bull; {{ data.trades[0].market_date }}</span>
                             {% endif %}
                         </div>
-                        <span class="font-bold">Total Matrix Cost: <span class="text-green-400">${{ "%.2f"|format(data.total_cost) }}</span></span>
+                        <div class="flex space-x-6 items-center">
+                            <span class="text-sm font-semibold text-gray-300">Total Matrix Cost: <span class="text-green-400">${{ "%.2f"|format(data.total_cost) }}</span></span>
+                            {% if data.total_payout > 0 %}
+                            <span class="font-bold text-emerald-400 bg-emerald-900/50 px-2 py-1 rounded">Secured Payout: ${{ "%.2f"|format(data.total_payout) }}</span>
+                            {% endif %}
+                        </div>
                     </div>
                     <table class="w-full text-left text-sm bg-white">
                         <thead class="bg-gray-100 text-gray-500 uppercase text-xs">
