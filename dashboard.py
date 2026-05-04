@@ -18,6 +18,34 @@ async def lifespan(app: FastAPI):
     # Start bot thread
     import paper_db
     paper_db.init_db()
+    
+    # --- DIAGNOSTIC STARTUP LOGS ---
+    try:
+        from paper_db import SessionLocal, Trade, Wallet
+        session = SessionLocal()
+        w = session.query(Wallet).first()
+        win_cnt = session.query(Trade).filter(Trade.status == 'RESOLVED_WIN').count()
+        loss_cnt = session.query(Trade).filter(Trade.status == 'RESOLVED_LOSS').count()
+        open_cnt = session.query(Trade).filter(Trade.status == 'OPEN').count()
+        
+        import logging
+        logger = logging.getLogger("FancyMathBot")
+        logger.info("===================================================")
+        logger.info(f"DB DIAGNOSTICS: Wallet=${w.balance:.2f}")
+        logger.info(f"DB DIAGNOSTICS: {open_cnt} OPEN | {win_cnt} WIN | {loss_cnt} LOSS")
+        
+        if win_cnt > 0:
+            logger.info("DB DIAGNOSTICS: Top 5 Winning Trades in Database:")
+            wins = session.query(Trade).filter(Trade.status == 'RESOLVED_WIN').all()
+            wins.sort(key=lambda t: t.qty * t.payout_per_share, reverse=True)
+            for w_tr in wins[:5]:
+                payout = w_tr.qty * w_tr.payout_per_share
+                logger.info(f"  -> Trade ID {w_tr.id} [{w_tr.exchange}]: {w_tr.option_id} | Qty={w_tr.qty:.2f} | Payout=${payout:.2f}")
+        logger.info("===================================================")
+        session.close()
+    except Exception as e:
+        print(f"Failed to dump DB diagnostics: {e}")
+        
     thread = threading.Thread(target=bot_thread, daemon=True)
     thread.start()
     yield
