@@ -25,13 +25,21 @@ def settle_open_trades():
     for t in open_trades:
         try:
             if getattr(t, 'timestamp', None):
-                # Since markets are only created for today/tomorrow (max 48hr lifespan),
-                # any trade older than 2 full days is definitively expired in the real world.
-                if (datetime.utcnow() - t.timestamp).days >= 2:
-                    # After 2 days without API resolution, forcefully expire the orphan trade
-                    resolve_trade(t.id, False)
-                    logger.warning(f"Trade {t.id} forcibly expired out of system due to 2-day age limit.")
-                    continue
+                trade_time = t.timestamp
+                if isinstance(trade_time, str):
+                    try:
+                        trade_time = datetime.fromisoformat(trade_time.replace('Z', '+00:00').split('.')[0])
+                    except Exception:
+                        pass
+                        
+                if isinstance(trade_time, datetime):
+                    # Since markets are only created for today/tomorrow (max 48hr lifespan),
+                    # any trade older than 2 full days is definitively expired in the real world.
+                    if (datetime.utcnow() - trade_time).days >= 2:
+                        # After 2 days without API resolution, forcefully expire the orphan trade
+                        resolve_trade(t.id, False)
+                        logger.warning(f"Trade {t.id} forcibly expired out of system due to 2-day age limit.")
+                        continue
 
             if t.exchange == 'polymarket':
                 # Polymarket option ID format: PM_{market_id}_YES
@@ -39,6 +47,7 @@ def settle_open_trades():
                 if len(parts) >= 3:
                     market_id = parts[1]
                     url = f"https://gamma-api.polymarket.com/markets/{market_id}"
+                    logger.info(f"Querying PM settlement: {url}")
                     r = requests.get(url, timeout=10, headers=headers)
                     if r.status_code == 200:
                         m = r.json()
@@ -65,10 +74,15 @@ def settle_open_trades():
                             elif t.option_type == 'NO' and no_price < 0.15:
                                 is_win = False
                             else:
+                                logger.info(f"PM {market_id} prices {yes_price}/{no_price} not skewed enough to settle.")
                                 continue # Market not definitively skewed/resolved
                                 
                             resolve_trade(t.id, is_win)
                             logger.info(f"Settled Polymarket {t.option_id} -> {'WIN' if is_win else 'LOSS'}")
+                        else:
+                            logger.info(f"PM Market {market_id} is not marked 'closed' yet. (active={m.get('active')})")
+                    else:
+                        logger.warning(f"PM Market {market_id} API returned HTTP {r.status_code}")
                             
             elif t.exchange == 'kalshi':
                 # Kalshi option ID format: KALSHI_{ticker}_YES
@@ -88,9 +102,12 @@ def settle_open_trades():
                             continue
                             
                         m = resp.market
-                        status = getattr(m, 'status', '')
-                        if status in ('finalized', 'settled'):
-                            result = getattr(m, 'result', '').lower()
+                        status = str(getattr(m, 'status', '')).lower()
+                        logger.info(f"Kalshi {ticker} status: {status}")
+                        
+                        if status in ('finalized', 'settled', 'determined'):
+                            result = str(getattr(m, 'result', '')).lower()
+                            logger.info(f"Kalshi {ticker} result: {result}")
                             if result in ('yes', 'no'):
                                 is_win = False
                                 if t.option_type == 'YES' and result == 'yes':
@@ -104,6 +121,10 @@ def settle_open_trades():
                                 
                                 resolve_trade(t.id, is_win)
                                 logger.info(f"Settled Kalshi {t.option_id} -> {'WIN' if is_win else 'LOSS'}")
+                            else:
+                                logger.info(f"Kalshi {ticker} result '{result}' not recognized as yes/no.")
+                        else:
+                            logger.info(f"Kalshi {ticker} not yet finalized.")
                     except Exception as e:
                         logger.error(f"Error fetching Kalshi market {ticker} via SDK: {e}")
                             

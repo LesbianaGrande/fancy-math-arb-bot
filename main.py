@@ -8,6 +8,11 @@ from exchanges.kalshi import fetch_kalshi_events
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("FancyMathBot")
 
+# Silence noisy external libraries
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("py_clob_client_v2.http_helpers.helpers").setLevel(logging.CRITICAL)
+logging.getLogger("py_clob_client_v2").setLevel(logging.CRITICAL)
+
 def scan_markets():
     logger.info("Starting live market scan over API pools...")
     
