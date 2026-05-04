@@ -177,7 +177,10 @@ templates = Jinja2Templates(directory="templates")
 def root(request: Request):
     session = SessionLocal()
     wallet = session.query(Wallet).first()
-    all_trades = session.query(Trade).order_by(Trade.timestamp.desc()).limit(200).all()
+    
+    # Increased limit to 2000 so older settled trades don't fall off the dashboard
+    # while the bot is heavily executing new live trades.
+    all_trades = session.query(Trade).order_by(Trade.timestamp.desc()).limit(2000).all()
     
     if not wallet: 
         wallet = Wallet(balance=0)
