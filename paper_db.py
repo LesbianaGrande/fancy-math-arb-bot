@@ -27,7 +27,8 @@ class Trade(Base):
     status = Column(String, default="OPEN") # OPEN, RESOLVED_WIN, RESOLVED_LOSS
     timestamp = Column(DateTime, default=datetime.utcnow)
 
-engine = create_engine('sqlite:///paper_trading.db')
+DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///paper_trading.db")
+engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(bind=engine)
 
 def init_db():
